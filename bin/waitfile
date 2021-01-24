@@ -1,0 +1,119 @@
+#!/usr/bin/env bash
+#
+# Created:         Fr 2019-10-25 09:33:59 CEST
+# Last Modified:   So 2020-06-28 22:55:45 CEST
+#
+# waitfile:
+#   This script waits for a file to be created within a certain time.
+
+# Help text
+usage() {
+cat << EOF
+
+Usage: waitfile [options] <file>
+
+This script waits a certain amount of time for a file to be created.
+The script uses the inotifywait command of the inotify-tools package to
+watch the directory of the file.
+
+OPTIONS:
+   -t <time>   Set timeout interval [seconds] (default:30)
+   -q          Be quiet
+   -h          Show this message
+EOF
+}
+
+# Initialization
+TIMOUT=30
+QUIET=0
+INOTIFYWAIT=$(command -v inotifywait)
+
+# Process options
+while getopts t:qh OPTION
+do
+    case "${OPTION}"
+        in
+        t)  TIMOUT=${OPTARG}
+            if ! [[ "${TIMOUT}" =~ ^[0-9]+$ ]]; then
+                echo "$0: Timeout interval must be positive integer or zero."
+                exit 3
+            fi
+            ;;
+        q)  QUIET=1
+            ;;
+        h)  usage
+            exit 0
+            ;;
+        \?) usage
+            exit 4
+            ;;
+    esac
+done
+
+# Check if ffmpeg is available
+if [ ! -x "${INOTIFYWAIT}" ]
+then
+    echo "$0: inotifywait not found, probably not installed"
+    exit 1
+fi
+
+# Skip options and shift index
+shift $((OPTIND-1))
+
+# Check number of arguments
+if [ $# -ne 1 ]
+then
+    echo "$0: Expecting exactly 1 argument"
+    usage
+    exit 1
+fi
+
+# Grep dirname from filename
+dir=$(dirname "$1")
+
+# Start watch
+start=$(date +%s)
+
+# Quit if file already exists
+if [ -f "$1" ]
+then
+
+    # File already exists
+    [ "${QUIET}" -eq 0 ] && echo "$1 already exists"
+    exit 0
+
+fi
+
+# Loop as long as file is not found
+while [ ! -f "$1" ]
+do
+
+    # Issue inotifywait with timeout option until something happens to directory
+    $INOTIFYWAIT -t "${TIMOUT}" -e create,open,moved_to -o /dev/null -q "${dir}"
+
+    # Stop watch
+    end=$(date +%s)
+
+    # Quit if timeout happened and timeout is set non-zero
+    if [ "${TIMOUT}" -gt 0 ] && [ $((end-start)) -gt "${TIMOUT}" ]
+    then
+		break
+	fi
+
+done
+
+# Display elapsed time
+if [ -f "$1" ]
+then
+
+    # File found, show statistics
+    [ "${QUIET}" -eq 0 ] && echo "$1 found (elapsed time: $((end-start)) sec)"
+    exit 0
+
+else
+
+    # File not found, timeout happend
+    [ "${QUIET}" -eq 0 ] && echo "$1 not found (timeout after ${TIMOUT} sec)"
+    exit 1
+
+fi
