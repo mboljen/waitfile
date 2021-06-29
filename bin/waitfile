@@ -97,8 +97,8 @@ do
     # Quit if timeout happened and timeout is set non-zero
     if [ "${TIMOUT}" -gt 0 ] && [ $((end-start)) -gt "${TIMOUT}" ]
     then
-		break
-	fi
+        break
+    fi
 
 done
 
