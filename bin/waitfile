@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 #
 # Created:         Fr 2019-10-25 09:33:59 CEST
-# Last Modified:   So 2020-06-28 22:55:45 CEST
+# Last Modified:   Mo 2023-12-04 22:49:27 CET
 #
 # waitfile:
 #   This script waits for a file to be created within a certain time.
@@ -31,10 +31,10 @@ INOTIFYWAIT=$(command -v inotifywait)
 # Process options
 while getopts t:qh OPTION
 do
-    case "${OPTION}"
+    case "$OPTION"
         in
-        t)  TIMOUT=${OPTARG}
-            if ! [[ "${TIMOUT}" =~ ^[0-9]+$ ]]; then
+        t)  TIMOUT=$OPTARG
+            if ! [[ "$TIMOUT" =~ ^[0-9]+$ ]]; then
                 echo "$0: Timeout interval must be positive integer or zero."
                 exit 3
             fi
@@ -51,7 +51,7 @@ do
 done
 
 # Check if ffmpeg is available
-if [ ! -x "${INOTIFYWAIT}" ]
+if [ ! -x "$INOTIFYWAIT" ]
 then
     echo "$0: inotifywait not found, probably not installed"
     exit 1
@@ -79,7 +79,7 @@ if [ -f "$1" ]
 then
 
     # File already exists
-    [ "${QUIET}" -eq 0 ] && echo "$1 already exists"
+    [ "$QUIET" -eq 0 ] && echo "$1 already exists"
     exit 0
 
 fi
@@ -89,13 +89,13 @@ while [ ! -f "$1" ]
 do
 
     # Issue inotifywait with timeout option until something happens to directory
-    $INOTIFYWAIT -t "${TIMOUT}" -e create,open,moved_to -o /dev/null -q "${dir}"
+    $INOTIFYWAIT -t "$TIMOUT" -e create,open,moved_to -o /dev/null -q "$dir"
 
     # Stop watch
     end=$(date +%s)
 
     # Quit if timeout happened and timeout is set non-zero
-    if [ "${TIMOUT}" -gt 0 ] && [ $((end-start)) -gt "${TIMOUT}" ]
+    if [ "$TIMOUT" -gt 0 ] && [ $((end-start)) -gt "$TIMOUT" ]
     then
         break
     fi
@@ -107,13 +107,13 @@ if [ -f "$1" ]
 then
 
     # File found, show statistics
-    [ "${QUIET}" -eq 0 ] && echo "$1 found (elapsed time: $((end-start)) sec)"
+    [ "$QUIET" -eq 0 ] && echo "$1 found (elapsed time: $((end-start)) sec)"
     exit 0
 
 else
 
     # File not found, timeout happend
-    [ "${QUIET}" -eq 0 ] && echo "$1 not found (timeout after ${TIMOUT} sec)"
+    [ "$QUIET" -eq 0 ] && echo "$1 not found (timeout after $TIMOUT sec)"
     exit 1
 
 fi
